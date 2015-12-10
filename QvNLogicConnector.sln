@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QvNLogicConnector", "QvLensConnector\QvNLogicConnector.csproj", "{D6BEDA70-C6D2-469F-82DD-D6A4B4637D5D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QvNLogicConnector", "QvNLogicConnector\QvNLogicConnector.csproj", "{D6BEDA70-C6D2-469F-82DD-D6A4B4637D5D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
