@@ -71,6 +71,7 @@ namespace QvNLogicConnector
         {
             QvxLog.Log(QvxLogFacility.Application, QvxLogSeverity.Debug, $"GetProgramRows");
 
+            ReportRequest reportRequest;
             ReportResponse reportResponse;
             QvxTable table;
             try
@@ -80,20 +81,22 @@ namespace QvNLogicConnector
                     !this.MParameters.TryGetValue("Password", out password))
                     throw new AuthenticationException("Username and/or password is incorrect");
 
-                var arguments = JsonConvert.DeserializeObject<ReportRequest>(query);
-                var client = new AnalyticsServiceClient();
-                client.ClientCredentials.UserName.UserName = username;
-                client.ClientCredentials.UserName.Password = password;
-
-                reportResponse = client.GetReport(arguments);
-                if (reportResponse.Status == ResultStatus.Error)
+                reportRequest = JsonConvert.DeserializeObject<ReportRequest>(query);
+                using (var client = new AnalyticsServiceClient())
                 {
-                    var message = string.Join(", ", reportResponse.Messages);
-                    QvxLog.Log(QvxLogFacility.Application, QvxLogSeverity.Error, message);
-                    throw new Exception("Server returned error: " + message);
-                }
+                    client.ClientCredentials.UserName.UserName = username;
+                    client.ClientCredentials.UserName.Password = password;
 
-                table = FindTable("ReportResults", MTables);
+                    reportResponse = client.GetReport(reportRequest);
+                    if (reportResponse.Status == ResultStatus.Error)
+                    {
+                        var message = string.Join(", ", reportResponse.Messages);
+                        QvxLog.Log(QvxLogFacility.Application, QvxLogSeverity.Error, message);
+                        throw new Exception("Server returned error: " + message);
+                    }
+
+                    table = FindTable("ReportResults", MTables);
+                }
             }
             catch (Exception ex)
             {
@@ -128,14 +131,16 @@ namespace QvNLogicConnector
 
             foreach (var row in reportResponse.Results)
             {
-                var dataRow = new QvxDataRow();
                 for (int audienceIndex = 0; audienceIndex < reportResponse.AudienceInformation.Length; audienceIndex++)
                 {
                     for (int marketIndex = 0; marketIndex < reportResponse.Markets.Length; marketIndex++)
                     {
+                        var dataRow = new QvxDataRow();
+
                         var rowValues = row.StatsPerAudience[audienceIndex].PerMarket[marketIndex];
 
-                        dataRow[audienceField] = reportResponse.AudienceInformation[audienceIndex].Label ?? "";
+                        dataRow[audienceField] = reportResponse.AudienceInformation[audienceIndex].Label ??
+                            reportRequest.Audiences[audienceIndex].Label ?? "";
                         dataRow[marketField] = reportResponse.Markets[marketIndex].Name ?? "";
                         if (row.ProgramName != null) dataRow[progrmaNameField] = row.ProgramName;
                         if (row.DaypartLabel != null) dataRow[daypartField] = row.DaypartLabel;
@@ -159,10 +164,10 @@ namespace QvNLogicConnector
                         if (rowValues.EstimatedAverageFrequency.HasValue) dataRow[frequencyField] = rowValues.EstimatedAverageFrequency.Value;
                         if (rowValues.EstimatedImpressions.HasValue) dataRow[impressionsField] = rowValues.EstimatedImpressions.Value;
                         if (rowValues.EstimatedReachPercent.HasValue) dataRow[reachPercentField] = rowValues.EstimatedReachPercent.Value;
+
+                        yield return dataRow;
                     }
                 }
-
-                yield return dataRow;
             }
         }
     }

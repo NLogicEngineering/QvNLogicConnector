@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using QlikView.Qvx.QvxLibrary;
 
 namespace QvNLogicConnector
 {
@@ -15,8 +17,6 @@ namespace QvNLogicConnector
             if (args != null && args.Length == 4 && args[0] == "debug")
             {
                 Console.WriteLine("Test mode");
-                Console.WriteLine("Press Enter to continue");
-                Console.ReadLine();
 
                 var connection = new QvNLogicConnection();
                 connection.MParameters = new Dictionary<string, string> {
@@ -28,8 +28,19 @@ namespace QvNLogicConnector
                 var table = connection.ExtractQuery(File.ReadAllText(args[1]), connection.MTables);
                 var rows = connection.MTables[0].GetRows();
 
+                var textProperty = typeof(QvxDataValue)
+                    .GetProperty("Text", BindingFlags.NonPublic | BindingFlags.Instance);
                 foreach (var row in rows)
-                    Console.WriteLine(row);
+                {
+                    var values = typeof(QvxDataRow)
+                        .GetField("m_Values", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(row)
+                        as Dictionary<string, QvxDataValue>;
+
+                    foreach (var kv in values)
+                        Console.Write($"{kv.Key}:\t{textProperty.GetValue(kv.Value)}, ");
+                    Console.WriteLine();
+                }
             }
             else if (args != null && args.Length >= 2)
             {
